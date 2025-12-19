@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Firebase Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .calculator {
+      width: 320px;
+      background: #222;
+      padding: 15px;
+      border-radius: 12px;
+      color: white;
+    }
+
+    .display {
+      width: 100%;
+      height: 60px;
+      font-size: 24px;
+      text-align: right;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border: none;
+    }
+
+    .buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      padding: 15px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button.operator {
+      background: #ff9500;
+      color: white;
+    }
+
+    button.number {
+      background: #333;
+      color: white;
+    }
+
+    button.clear {
+      background: white;
+      color: white;
+      grid-column: span 2;
+    }
+
+    button.equal {
+      background: white;
+      color: white;
+      grid-column: span 2;
+    }
+
+    .history {
+      margin-top: 15px;
+      font-size: 14px;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    .history div {
+      border-bottom: 1px solid #444;
+      padding: 3px 0;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="calculator">
+  <input type="text" id="display" class="display" disabled>
+
+  <div class="buttons">
+    <button class="clear" onclick="clearDisplay()">C</button>
+    <button class="operator" onclick="appendValue('/')">÷</button>
+
+    <button class="number" onclick="appendValue('7')">7</button>
+    <button class="number" onclick="appendValue('8')">8</button>
+    <button class="number" onclick="appendValue('9')">9</button>
+    <button class="operator" onclick="appendValue('*')">×</button>
+
+    <button class="number" onclick="appendValue('4')">4</button>
+    <button class="number" onclick="appendValue('5')">5</button>
+    <button class="number" onclick="appendValue('6')">6</button>
+    <button class="operator" onclick="appendValue('-')">−</button>
+
+    <button class="number" onclick="appendValue('1')">1</button>
+    <button class="number" onclick="appendValue('2')">2</button>
+    <button class="number" onclick="appendValue('3')">3</button>
+    <button class="operator" onclick="appendValue('+')">+</button>
+
+    <button class="number" onclick="appendValue('0')">0</button>
+    <button class="number" onclick="appendValue('.')">.</button>
+    <button class="equal" onclick="calculate()">=</button>
+  </div>
+
+  <div class="history" id="history"></div>
+</div>
+
+<script>
+  // 🔥 Firebase Configuration (Replace this)
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "SENDER_ID",
+    appId: "APP_ID"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  let display = document.getElementById("display");
+
+  function appendValue(value) {
+    display.value += value;
+  }
+
+  function clearDisplay() {
+    display.value = "";
+  }
+
+  function calculate() {
+    try {
+      let expression = display.value;
+      let result = eval(expression);
+
+      if (result === Infinity) {
+        alert("Cannot divide by zero");
+        return;
+      }
+
+      display.value = result;
+      saveHistory(expression, result);
+    } catch (e) {
+      alert("Invalid Calculation");
+    }
+  }
+
+  function saveHistory(expression, result) {
+    db.collection("calculations").add({
+      expression: expression,
+      result: result,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(loadHistory);
+  }
+
+  function loadHistory() {
+    let historyDiv = document.getElementById("history");
+    historyDiv.innerHTML = "";
+
+    db.collection("calculations")
+      .orderBy("timestamp", "desc")
+      .limit(10)
+      .get()
+      .then(snapshot => {
+        snapshot.forEach(doc => {
+          let data = doc.data();
+          let div = document.createElement("div");
+          div.innerText = `${data.expression} = ${data.result}`;
+          historyDiv.appendChild(div);
+        });
+      });
+  }
+
+  loadHistory();
+</script>
+
+</body>
+</html>
